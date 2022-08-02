@@ -16,12 +16,12 @@
  *
  */
 
-// protoc-gen-go-grpc is a plugin for the Google protocol buffer compiler to
+// protoc-gen-go-plugin is a plugin for the Google protocol buffer compiler to
 // generate Go code. Install it by building this program and making it
 // accessible within your PATH with the name:
-//	protoc-gen-go-grpc
+//	protoc-gen-go-plugin
 //
-// The 'go-grpc' suffix becomes part of the argument for the protocol compiler,
+// The 'go-plugin' suffix becomes part of the argument for the protocol compiler,
 // such that it can be invoked as:
 //	protoc --go-grpc_out=. path/to/file.proto
 //
@@ -46,7 +46,7 @@ func main() {
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
 	if *showVersion {
-		fmt.Printf("protoc-gen-go-grpc %v\n", version)
+		fmt.Printf("protoc-gen-go-plugin %v\n", version)
 		return
 	}
 

@@ -14,9 +14,9 @@
 
 syntax = "proto3";
 
-option go_package = "/";
+option go_package = "./;pb";
 option java_multiple_files = true;
-option java_package = "io.grpc.examples.helloworld";
+option java_package = "io.plugin.examples.helloworld";
 option java_outer_classname = "HelloWorldProto";
 
 package helloworld;

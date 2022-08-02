@@ -1,4 +1,4 @@
-module protoc-gen-custom
+module github.com/yaoxh6/CustomRPC/protoc-tool/protoc-gen-custom
 
 go 1.18
 

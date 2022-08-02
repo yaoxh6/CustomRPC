@@ -27,7 +27,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	pb "helloworld/helloworld"
+	pb "github.com/yaoxh6/CustomRPC/examples/helloworld/helloworld"
 )
 
 const (
