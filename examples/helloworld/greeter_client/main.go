@@ -25,9 +25,9 @@ import (
 	"log"
 	"time"
 
+	pb "github.com/yaoxh6/CustomRPC/examples/helloworld/helloworld"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	pb "github.com/yaoxh6/CustomRPC/examples/helloworld/helloworld"
 )
 
 const (
@@ -47,7 +47,7 @@ func main() {
 		log.Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
-	c := pb.NewGreeterClient(conn)
+	c := pb.NewGreeterCustomClient("client", conn)
 
 	// Contact the server and print out its response.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
