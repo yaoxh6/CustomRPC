@@ -24,7 +24,7 @@ const (
 
 type ServiceHandler interface {
 	Name() string
-	HandleRPC(context.Context, string, *archiver.Decoder) ([]byte, error)
+	HandleRPC(context.Context, string) ([]byte, error)
 }
 
 type CustomService struct {
@@ -34,6 +34,7 @@ type CustomService struct {
 	trans          transport.Transport
 	serviceHandler ServiceHandler
 	suspendMap     sync.Map // map[string]*CustomRequest
+	d				Codec
 }
 
 func (h *CustomService) NewRequestId() string {
@@ -55,27 +56,25 @@ func (h *CustomService) handleSuspendedRequest(requestId string, pak *transport.
 	return errors.Errorf("skip non-existing request: %s", requestId)
 }
 
-func (h *CustomService) handleRPC(rpcName string, d *archiver.Decoder, pak *transport.Package) ([]byte, error) {
+func (h *CustomService) handleRPC(rpcName string, pak *transport.Package) ([]byte, error) {
 	ctxNew := context.WithValue(h.ctx, ContextRequestPackage, pak)
-	return h.serviceHandler.HandleRPC(ctxNew, rpcName, d)
+	return h.serviceHandler.HandleRPC(ctxNew, rpcName)
 }
 
 func (h *CustomService) internalHandle(pak *transport.Package) {
-	var d archiver.Decoder
-
-	err := d.Load(pak.Data)
-	if err != nil {
-		log.Errorf("load failed. ctx:%+v, err:%+v, data:%v", h.ctx, err, pak.Data)
-		return
-	}
+	//err := d.Load(pak.Data)
+	//if err != nil {
+	//	log.Errorf("load failed. ctx:%+v, err:%+v, data:%v", h.ctx, err, pak.Data)
+	//	return
+	//}
 
 	var rpcName string
-	err = d.Unmarshal(&rpcName)
+	err := h.d.Decode(pak.Data, &rpcName)
 	if err != nil {
 		log.Errorf("unmarshal failed. ctx:%+v, err:%+v", h.ctx, err)
-		data := d.Peek()
+		//data := d.Peek()
 		log.Errorf("unmarshal failed data:%v", pak.Data)
-		log.Infof("unmarshal failed. ", data)
+		//log.Infof("unmarshal failed. ", data)
 		return
 	}
 
@@ -85,7 +84,7 @@ func (h *CustomService) internalHandle(pak *transport.Package) {
 			log.Debugf("handle suspended request failed:%+v", err)
 		}
 	} else {
-		rspBin, err := h.handleRPC(rpcName, &d, pak)
+		rspBin, err := h.handleRPC(rpcName, pak)
 		if err == nil && len(rspBin) > 0 {
 			var sendPak = *pak
 			sendPak.Data = rspBin

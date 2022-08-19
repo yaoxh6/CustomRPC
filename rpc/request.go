@@ -11,6 +11,12 @@ const (
 	DefaultCustomRequestTimeout = 1 * time.Second
 )
 
+type RequestData struct {
+	RemoteFuncName string `json:"remote_func_name"`
+	RequestId string `json:"request_id"`
+	Params []interface{} `json:"params"`
+}
+
 type CustomRequest struct {
 	requestId   string
 	data        []byte

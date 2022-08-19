@@ -1,7 +1,6 @@
 package client
 import (
 	"context"
-	"github.com/pkg/errors"
 	"github.com/yaoxh6/CustomRPC/rpc"
 	"github.com/yaoxh6/CustomRPC/rpc/transport"
 )
@@ -27,36 +26,46 @@ func NewCustomClient(h *rpc.CustomService, serviceName string, opts ...Option) *
 		serviceName: serviceName,
 	}
 }
+//func generateRequestData(remoteFuncName string, requestId string, params []interface{}, options Options) ([]byte, error) {
+//	var err error
+//	var enc archiver.Encoder
+//	enc.Init()
+//
+//	err = enc.Marshal(remoteFuncName)
+//	if err != nil {
+//		return nil, errors.Wrapf(err, "error encoding remote function name: %s", remoteFuncName)
+//	}
+//	for i, param := range params {
+//		if len(requestId) > 0 && options.CallOptions.ReqIdShift == i {
+//			err = enc.Marshal(requestId)
+//			if err != nil {
+//				return nil, errors.Wrapf(err, "error encoding request id @%d", options.CallOptions.ReqIdShift)
+//			}
+//		}
+//
+//		err = enc.Marshal(param)
+//		if err != nil {
+//			return nil, errors.Wrapf(err, "error encoding request param #%d: %v", i, param)
+//		}
+//	}
+//	if len(requestId) > 0 && options.CallOptions.ReqIdShift >= len(params) {
+//		err = enc.Marshal(requestId)
+//		if err != nil {
+//			return nil, errors.Wrapf(err, "error encoding request id @%d", options.CallOptions.ReqIdShift)
+//		}
+//	}
+//
+//	return enc.Save()
+//}
+
 func generateRequestData(remoteFuncName string, requestId string, params []interface{}, options Options) ([]byte, error) {
-	var err error
-	var enc archiver.Encoder
-	enc.Init()
-
-	err = enc.Marshal(remoteFuncName)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error encoding remote function name: %s", remoteFuncName)
+	code := rpc.JsonCodec{}
+	data := rpc.RequestData{
+		RemoteFuncName: remoteFuncName,
+		RequestId: requestId,
+		Params: params,
 	}
-	for i, param := range params {
-		if len(requestId) > 0 && options.CallOptions.ReqIdShift == i {
-			err = enc.Marshal(requestId)
-			if err != nil {
-				return nil, errors.Wrapf(err, "error encoding request id @%d", options.CallOptions.ReqIdShift)
-			}
-		}
-
-		err = enc.Marshal(param)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error encoding request param #%d: %v", i, param)
-		}
-	}
-	if len(requestId) > 0 && options.CallOptions.ReqIdShift >= len(params) {
-		err = enc.Marshal(requestId)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error encoding request id @%d", options.CallOptions.ReqIdShift)
-		}
-	}
-
-	return enc.Save()
+	return code.Encode(data)
 }
 
 func (h *CustomClient) NewRequest(ctx context.Context, remoteFuncName string, isSyncRequest bool, params []interface{}, opts ...Option) (string, []byte, error) {
