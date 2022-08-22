@@ -1,0 +1,18 @@
+﻿  server_export.cpp
+D:\CustomRPC\lua-server\luna\luna.h(361,5): warning C4984: "if constexpr" 是一种 C++17 语言扩展
+D:\CustomRPC\lua-server\luna\luna.h(385): message : 查看对正在编译的函数 模板 实例化“int lua_object_gc<T>(lua_State *)”的引用
+          with
+          [
+              T=SimpleServer
+          ]
+D:\CustomRPC\lua-server\luna\luna.h(452): message : 查看对正在编译的函数 模板 实例化“void lua_register_class<SimpleServer>(lua_State *,T *)”的引用
+          with
+          [
+              T=SimpleServer
+          ]
+D:\CustomRPC\lua-server\simpleServer\server_export.cpp(12): message : 查看对正在编译的函数 模板 实例化“void lua_push_object<SimpleServer*>(lua_State *,T)”的引用
+          with
+          [
+              T=SimpleServer *
+          ]
+  simpleServer.vcxproj -> D:\CustomRPC\lua-server\build\simpleServer\Debug\simpleServer.lib

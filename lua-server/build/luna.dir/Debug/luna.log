@@ -1,0 +1,62 @@
+﻿  lapi.c
+  lauxlib.c
+  lbaselib.c
+  lcode.c
+  lcorolib.c
+  lctype.c
+  ldblib.c
+  ldebug.c
+  ldo.c
+  ldump.c
+  lfunc.c
+  lgc.c
+  linit.c
+  liolib.c
+  llex.c
+  lmathlib.c
+  lmem.c
+  loadlib.c
+  lobject.c
+  lopcodes.c
+  正在生成代码...
+  正在编译...
+  loslib.c
+  lparser.c
+  lstate.c
+  lstring.c
+  lstrlib.c
+  ltable.c
+  ltablib.c
+  ltm.c
+  lua.c
+  luac.c
+  lundump.c
+  lutf8lib.c
+  lvm.c
+  lzio.c
+  lua_log.c
+  lz4.c
+  main.c
+  正在生成代码...
+  lua_archiver.cpp
+  luna.cpp
+D:\CustomRPC\lua-server\luna\luna.h(361,5): warning C4984: "if constexpr" 是一种 C++17 语言扩展
+D:\CustomRPC\lua-server\luna\luna.h(385): message : 查看对正在编译的函数 模板 实例化“int lua_object_gc<T>(lua_State *)”的引用
+          with
+          [
+              T=luna_function_wapper
+          ]
+D:\CustomRPC\lua-server\luna\luna.h(452): message : 查看对正在编译的函数 模板 实例化“void lua_register_class<luna_function_wapper>(lua_State *,T *)”的引用
+          with
+          [
+              T=luna_function_wapper
+          ]
+D:\CustomRPC\lua-server\luna\luna.cpp(36): message : 查看对正在编译的函数 模板 实例化“void lua_push_object<luna_function_wapper*>(lua_State *,T)”的引用
+          with
+          [
+              T=luna_function_wapper *
+          ]
+  var_int.cpp
+  正在生成代码...
+lua.obj : warning LNK4006: main 已在 luac.obj 中定义；已忽略第二个定义
+  luna.vcxproj -> D:\CustomRPC\lua-server\build\Debug\luna.lib

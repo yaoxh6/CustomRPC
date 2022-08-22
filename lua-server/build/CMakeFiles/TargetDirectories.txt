@@ -1,0 +1,4 @@
+D:/CustomRPC/lua-server/build/CMakeFiles/luna.dir
+D:/CustomRPC/lua-server/build/CMakeFiles/ALL_BUILD.dir
+D:/CustomRPC/lua-server/build/simpleServer/CMakeFiles/simpleServer.dir
+D:/CustomRPC/lua-server/build/app/CMakeFiles/app.dir
