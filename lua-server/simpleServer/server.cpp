@@ -43,18 +43,25 @@ bool SimpleServer::Connect()
 	return true;
 }
 
-int SimpleServer::Send(const char* sendData)
+int SimpleServer::Send(lua_State* L)
 {
-	return send(sclient, sendData, strlen(sendData), 0);
-}
-
-char* SimpleServer::Recv()
-{
+	const char* sendData = lua_tostring(L, 1);
+	send(sclient, sendData, strlen(sendData), 0);
 	char recData[255];
 	int ret = recv(sclient, recData, 255, 0);
 	if (ret > 0) {
 		recData[ret] = 0x00;
 		printf(recData);
 	}
-	return recData;
+	Recv(L, recData, strlen(recData));
+}
+
+void SimpleServer::Recv(lua_State* L, const char* data, size_t data_len)
+{
+	if (!lua_get_object_function(L, this, "on_call_with_handle")) {
+		printf("SimpleServer::Recv on_call_with_hanldle failed");
+		return;
+	}
+	lua_pushstring(L, data);
+	lua_call_function(L, nullptr, 1, 0);
 }

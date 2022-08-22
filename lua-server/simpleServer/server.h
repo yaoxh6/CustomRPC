@@ -15,6 +15,6 @@ public:
     bool Init();
     void Uninit();
     bool Connect();
-    int Send(const char* sendData);
-    char* Recv();
+    int Send(lua_State* L);
+    void Recv(lua_State* L, const char* data, size_t data_len);
 };

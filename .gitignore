@@ -2,8 +2,8 @@
 .idea
 .vs
 *.ilk
-*.lib
 *.pdb
+*.tlog
+*.lib
 *.obj
 *.log
-*.tlog
