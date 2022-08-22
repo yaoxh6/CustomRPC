@@ -2,9 +2,9 @@ package rpc
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"github.com/yaoxh6/CustomRPC/rpc/transport"
 	"time"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -65,8 +65,8 @@ func (r *CustomRequest) WaitComplete(ctx context.Context) *CustomRespond {
 	case <-ctxWithTimeout.Done():
 		return NewCustomRespond(nil, errors.Wrap(ctxWithTimeout.Err(), "request timeout"))
 	case resp := <-r.suspendLock:
-	}
 		return NewCustomRespond(&resp, nil)
+	}
 }
 
 func (r *CustomRequest) ResumeExecution(pak *transport.Package) {

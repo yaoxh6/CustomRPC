@@ -18,7 +18,7 @@ bool SimpleServer::Init()
 		return false;
 	}
 	ip = "127.0.0.1";
-	port = 50051;
+	port = 8888;
 	return true;
 }
 

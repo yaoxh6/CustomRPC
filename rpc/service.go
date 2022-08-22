@@ -1,17 +1,17 @@
 package rpc
 
 import (
+	"context"
 	"fmt"
+	log "github.com/hyahm/golog"
 	"github.com/pkg/errors"
 	"github.com/yaoxh6/CustomRPC/rpc/transport"
 	"os"
 	"os/signal"
 	"runtime"
 	"sync"
-	"context"
 	"sync/atomic"
 	"syscall"
-	log "github.com/hyahm/golog"
 	"time"
 )
 
@@ -97,9 +97,9 @@ func (h *CustomService) internalHandle(pak *transport.Package) {
 }
 
 func (h *CustomService) internalRecv() (int, error) {
-	pak, err := h.trans.Poll()
+	pak, err := h.trans.Recv()
 	if err != nil {
-		return 0, errors.Wrap(err, "poll failed")
+		return 0, errors.Wrap(err, "Recv failed")
 	}
 	if pak == nil {
 		return 0, nil

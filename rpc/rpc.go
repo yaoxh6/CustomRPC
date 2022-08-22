@@ -13,7 +13,7 @@ type Service interface {
 	Close(chan struct{}) error
 }
 
-func CreateHiveService(tt transport.Transport) (*CustomService, error) {
+func CreateCustomService(tt transport.Transport) (*CustomService, error) {
 	h := &CustomService{
 		trans: tt,
 	}

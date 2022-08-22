@@ -19,80 +19,43 @@
 // Package main implements a server for Greeter service.
 package main
 
+
 import (
-	"bufio"
+	"context"
+	"flag"
 	"fmt"
+	"log"
 	"net"
+
+	pb "github.com/yaoxh6/CustomRPC/examples/helloworld/helloworld"
+	"google.golang.org/grpc"
 )
 
-//
-//import (
-//	"context"
-//	"flag"
-//	"fmt"
-//	"log"
-//	"net"
-//
-//	pb "github.com/yaoxh6/CustomRPC/examples/helloworld/helloworld"
-//	"google.golang.org/grpc"
-//)
-//
-//var (
-//	port = flag.Int("port", 50051, "The server port")
-//)
-//
-//// server is used to implement helloworld.GreeterServer.
-//type server struct {
-//	pb.UnimplementedGreeterServer
-//}
-//
-//// SayHello implements helloworld.GreeterServer
-//func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
-//	log.Printf("Received: %v", in.GetName())
-//	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
-//}
-//
-//func main() {
-//	flag.Parse()
-//	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
-//	if err != nil {
-//		log.Fatalf("failed to listen: %v", err)
-//	}
-//	s := grpc.NewServer()
-//	pb.RegisterGreeterCustomServer(s, &server{})
-//	log.Printf("server listening at %v", lis.Addr())
-//	if err := s.Serve(lis); err != nil {
-//		log.Fatalf("failed to serve: %v", err)
-//	}
-//}
+var (
+	port = flag.Int("port", 8888, "The server port")
+)
 
-func process(conn net.Conn) {
-	defer conn.Close() // 关闭连接
-	for {
-		reader := bufio.NewReader(conn)
-		var buf [128]byte
-		n, err := reader.Read(buf[:]) // 读取数据
-		if err != nil {
-			fmt.Println("read from client failed, err: ", err)
-			break
-		}
-		recvStr := string(buf[:n])
-		fmt.Println("收到Client端发来的数据：", recvStr)
-		conn.Write([]byte(recvStr)) // 发送数据
-	}
+// server is used to implement helloworld.GreeterServer.
+type server struct {
+	pb.UnimplementedGreeterServer
+}
+
+// SayHello implements helloworld.GreeterServer
+func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
+	log.Printf("Received: %v", in.GetName())
+	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
 }
 
 func main() {
-	client, err := net.Listen("tcp", "127.0.0.1:50051")
+	flag.Parse()
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
-		fmt.Printf("Error : %+v\n",err)
+		log.Fatalf("failed to listen: %v", err)
 	}
-	for {
-		conn, err := client.Accept() // 监听客户端的连接请求
-		if err != nil {
-			fmt.Println("Accept() failed, err: ", err)
-			continue
-		}
-		go process(conn) // 启动一个goroutine来处理客户端的连接请求
+	s := grpc.NewServer()
+	pb.RegisterGreeterCustomServer(s, &server{})
+	log.Printf("server listening at %v", lis.Addr())
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
 	}
 }
