@@ -1,3 +1,9 @@
 .vscode
 .idea
 .vs
+*.ilk
+*.lib
+*.pdb
+*.obj
+*.log
+*.tlog
