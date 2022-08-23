@@ -10,11 +10,12 @@ func InitServerEnv() (*rpc.CustomService, error){
 		Client: nil,
 		Conn:   nil,
 	}
-	err := simpleT.Init("TCP", "127.0.0.1:8888")
+	err := simpleT.Setup("tcp", "127.0.0.1:8888")
 	if err != nil {
 		return nil, err
 	}
-	h, err := rpc.CreateCustomService(simpleT)
+	codec := rpc.JsonCodec{}
+	h, err := rpc.CreateCustomService(&simpleT, &codec)
 	if err != nil {
 		return nil, err
 	}

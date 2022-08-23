@@ -14,7 +14,7 @@ type Package struct {
 type Option func(t Transport) error
 
 type Transport interface {
-	Init(network string, address string) error
+	Setup(network string, address string) error
 	Recv() (*Package, error)
 	Send(pak *Package, opts ...Option) error
 }
@@ -24,7 +24,7 @@ type SimpleTransport struct {
 	Conn net.Conn
 }
 
-func (s *SimpleTransport) Init (network string, address string) error {
+func (s *SimpleTransport) Setup (network string, address string) error {
 	var err error
 	s.Client, err = net.Listen(network, address)
 	if err != nil {
@@ -57,6 +57,10 @@ func (s *SimpleTransport) Recv() (*Package, error)  {
 	return res, nil
 }
 
-func (s *SimpleTransport) Send (pak *Package, opts ...Option) {
-	s.Conn.Write(pak.Data)
+func (s *SimpleTransport) Send (pak *Package, opts ...Option) error {
+	_, err := s.Conn.Write(pak.Data)
+	if err != nil {
+		return err
+	}
+	return nil
 }

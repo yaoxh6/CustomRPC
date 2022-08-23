@@ -37,6 +37,19 @@ type CustomService struct {
 	d				Codec
 }
 
+func (h *CustomService) Register(serviceDesc interface{}, serviceImpl interface{}) error {
+	sh, ok := serviceImpl.(ServiceHandler)
+	if !ok {
+		return errors.Errorf("unsupported serviceImpl type: %+v", serviceImpl)
+	}
+	if h.serviceHandler != nil {
+		return errors.Errorf("serviceHandler already registered")
+	}
+
+	h.serviceHandler = sh
+	return nil
+}
+
 func (h *CustomService) NewRequestId() string {
 	requestId := atomic.AddInt64(&h.requestId, 1)
 	return fmt.Sprintf("#%d", requestId)

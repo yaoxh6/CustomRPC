@@ -13,9 +13,10 @@ type Service interface {
 	Close(chan struct{}) error
 }
 
-func CreateCustomService(tt transport.Transport) (*CustomService, error) {
+func CreateCustomService(tt transport.Transport, c Codec) (*CustomService, error) {
 	h := &CustomService{
 		trans: tt,
+		d: c,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
