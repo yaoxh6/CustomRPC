@@ -145,7 +145,9 @@ func (h *greeterHandler) HandleRPC(ctx context.Context, rpcName string, d rpc.Co
 	case "SayHello":
 		var helloRequest HelloRequest
 		var inVarList []interface{}
+		var temp string
 		var callback string
+		inVarList = append(inVarList, &temp)
 		inVarList = append(inVarList, &callback)
 		inVarList = append(inVarList, &helloRequest.Name)
 		//reqFields, _, _ := h.ServiceMeta(rpcName, 1)

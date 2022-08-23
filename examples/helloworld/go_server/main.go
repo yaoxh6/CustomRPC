@@ -20,9 +20,10 @@
 package main
 
 import (
+	"log"
+
 	pb "github.com/yaoxh6/CustomRPC/examples/helloworld/helloworld"
 	"github.com/yaoxh6/CustomRPC/rpc"
-	"log"
 )
 
 //var (

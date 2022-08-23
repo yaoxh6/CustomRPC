@@ -3,9 +3,6 @@ package rpc
 import (
 	"context"
 	"fmt"
-	log "github.com/hyahm/golog"
-	"github.com/pkg/errors"
-	"github.com/yaoxh6/CustomRPC/rpc/transport"
 	"os"
 	"os/signal"
 	"runtime"
@@ -13,13 +10,17 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	log "github.com/hyahm/golog"
+	"github.com/pkg/errors"
+	"github.com/yaoxh6/CustomRPC/rpc/transport"
 )
 
 type ContextKey string
 
 const (
 	ContextRequestPackage = ContextKey("CONTEXT_REQUEST_PACKAGE")
-	ContextCustomService    = ContextKey("CONTEXT_CUSTOM_SERVICE")
+	ContextCustomService  = ContextKey("CONTEXT_CUSTOM_SERVICE")
 )
 
 type ServiceHandler interface {
@@ -34,7 +35,7 @@ type CustomService struct {
 	trans          transport.Transport
 	serviceHandler ServiceHandler
 	suspendMap     sync.Map // map[string]*CustomRequest
-	d				Codec
+	d              Codec
 }
 
 func (h *CustomService) Register(serviceDesc interface{}, serviceImpl interface{}) error {

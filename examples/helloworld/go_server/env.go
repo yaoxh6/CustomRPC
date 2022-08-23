@@ -5,7 +5,7 @@ import (
 	"github.com/yaoxh6/CustomRPC/rpc/transport"
 )
 
-func InitServerEnv() (*rpc.CustomService, error){
+func InitServerEnv() (*rpc.CustomService, error) {
 	simpleT := transport.SimpleTransport{
 		Client: nil,
 		Conn:   nil,
