@@ -24,7 +24,7 @@ const (
 
 type ServiceHandler interface {
 	Name() string
-	HandleRPC(context.Context, string) ([]byte, error)
+	HandleRPC(context.Context, string, Codec, *transport.Package) ([]byte, error)
 }
 
 type CustomService struct {
@@ -71,7 +71,7 @@ func (h *CustomService) handleSuspendedRequest(requestId string, pak *transport.
 
 func (h *CustomService) handleRPC(rpcName string, pak *transport.Package) ([]byte, error) {
 	ctxNew := context.WithValue(h.ctx, ContextRequestPackage, pak)
-	return h.serviceHandler.HandleRPC(ctxNew, rpcName)
+	return h.serviceHandler.HandleRPC(ctxNew, rpcName, h.d, pak)
 }
 
 func (h *CustomService) internalHandle(pak *transport.Package) {
@@ -81,8 +81,10 @@ func (h *CustomService) internalHandle(pak *transport.Package) {
 	//	return
 	//}
 
+	var param []interface{}
 	var rpcName string
-	err := h.d.Decode(pak.Data, &rpcName)
+	err := h.d.Decode(pak.Data, &param)
+	rpcName = param[0].(string)
 	if err != nil {
 		log.Errorf("unmarshal failed. ctx:%+v, err:%+v", h.ctx, err)
 		//data := d.Peek()

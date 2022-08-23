@@ -7,3 +7,6 @@
 *.lib
 *.obj
 *.log
+*.vcxproj.*
+*.vcxproj
+lua-server/build

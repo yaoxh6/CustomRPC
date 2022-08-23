@@ -1,5 +1,6 @@
 #include "server.h"
-
+#include "json.h"
+using json_t = nlohmann::json;
 LUA_EXPORT_CLASS_BEGIN(SimpleServer)
 LUA_EXPORT_METHOD(Send)
 LUA_EXPORT_CLASS_END()
@@ -43,10 +44,41 @@ bool SimpleServer::Connect()
 	return true;
 }
 
+bool EncodeData(lua_State* L, json_t& j, int index) {
+	int type = lua_type(L, index);
+	switch (type) {
+	case LUA_TNIL:
+		j[index-1] = "";
+		return true;
+	case LUA_TNUMBER:
+		lua_isinteger(L, index) ? j[index-1] = (lua_tointeger(L, index)) : j[index-1] = (lua_tonumber(L, index));
+		return true;
+	case LUA_TBOOLEAN:
+		j[index-1] = (!!lua_toboolean(L, index));
+		return true;
+	case LUA_TSTRING:
+		j[index-1] = lua_tostring(L, index);
+		return true;
+	case LUA_TTABLE:
+		//暂时不支持table
+		return false;
+	default:
+		break;
+	}
+	return false;
+}
+
 int SimpleServer::Send(lua_State* L)
 {
-	const char* sendData = lua_tostring(L, 1);
-	send(sclient, sendData, strlen(sendData), 0);
+	json_t j;
+	int top = lua_gettop(L);
+	for (int i = 1; i<=top; i++)
+	{
+		if (!EncodeData(L, j, i)) {
+			return 0;
+		}
+	}
+	send(sclient, j.dump().c_str(), strlen(j.dump().c_str()), 0);
 	char recData[255];
 	int ret = recv(sclient, recData, 255, 0);
 	if (ret > 0) {

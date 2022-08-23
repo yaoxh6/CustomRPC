@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
     //绑定IP和端口
     sockaddr_in sin;
     sin.sin_family = AF_INET;
-    sin.sin_port = htons(50051);
+    sin.sin_port = htons(8888);
     sin.sin_addr.S_un.S_addr = INADDR_ANY;
     if(bind(slisten, (LPSOCKADDR)&sin, sizeof(sin)) == SOCKET_ERROR)
     {

@@ -4,17 +4,15 @@
 package pb
 
 import (
-	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
-	errors "github.com/pkg/errors"
-	math "math"
-)
-
-import (
 	context "context"
+	"encoding/json"
+	"fmt"
+	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 	rpc "github.com/yaoxh6/CustomRPC/rpc"
 	client "github.com/yaoxh6/CustomRPC/rpc/client"
-	//transport "github.com/yaoxh6/CustomRPC/rpc/transport"
+	transport "github.com/yaoxh6/CustomRPC/rpc/transport"
+	"math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -59,32 +57,31 @@ func NewGreeterClientProxy(h *rpc.CustomService) GreeterClientProxy {
 }
 
 func (c *greeterClientProxyImpl) SayHello(ctx context.Context, helloRequest *HelloRequest, opts ...client.Option) (*HelloReply, error) {
-	//var __d__ archiver.Decoder
+	//var __fieldsList__ []interface{}
 	//var __waste__ string // Skip suspend session id
 	//var __resp__ []byte
 	var err error
 	helloReply_ := new(HelloReply)
-
-	//if helloRequest == nil {
-	//	return nil, errors.New("parameter helloRequest is nil")
-	//}
-	//__reqId__, __req__, err := c.c.NewRequest(ctx, "SayHello", true, []interface{}{helloRequest.Name}, opts...)
-	//if err != nil {
-	//	goto LastReturn
-	//}
-	//
-	//__resp__, err = c.c.CallFunction(ctx, "SayHello", __reqId__, __req__, opts...)
-	//if err != nil {
-	//	goto LastReturn
-	//}
-	//__d__.Load(__resp__)
-	//_ = __d__.Unmarshal(&__waste__)
-	//
-	//err = __d__.Unmarshal(&helloReply_.Message)
-	//if err != nil {
-	//	goto LastReturn
-	//}
-
+//
+//	if helloRequest == nil {
+//		return nil, errors.New("parameter helloRequest is nil")
+//	}
+//	__reqId__, __req__, err := c.c.NewRequest(ctx, "SayHello", true, []interface{}{helloRequest.Name}, opts...)
+//	if err != nil {
+//		goto LastReturn
+//	}
+//
+//	__resp__, err = c.c.CallFunction(ctx, "SayHello", __reqId__, __req__, opts...)
+//	if err != nil {
+//		goto LastReturn
+//	}
+//	__fieldsList__ = append(__fieldsList__, &__waste__)
+//	__fieldsList__ = append(__fieldsList__, &helloReply_.Message)
+//	err = rpc.DecodeWithTrace("", nil, __resp__, __fieldsList__...)
+//	if err != nil {
+//		goto LastReturn
+//	}
+//
 //LastReturn:
 	return helloReply_, err
 }
@@ -142,31 +139,29 @@ func (h *greeterHandler) ServiceMeta(rpcName string, metaType int) ([]string, []
 	return nil, nil, fmt.Errorf("unknown meta type for '%s': %d", rpcName, metaType)
 }
 
-func (h *greeterHandler) HandleRPC(ctx context.Context, rpcName string) ([]byte, error) {
+func (h *greeterHandler) HandleRPC(ctx context.Context, rpcName string, d rpc.Codec, pak *transport.Package) ([]byte, error) {
 	//var err error
 	switch rpcName {
 	case "SayHello":
-		//var helloRequest HelloRequest
-		//var sessionId string
-		//err = inData.Unmarshal(&sessionId)
-		//if err != nil {
-		//	reqFields, reqMeta, _ := h.ServiceMeta(rpcName, 1)
-		//	rpc.PrintUnmatchedMeta(reqFields, reqMeta, inData.Peek())
-		//	return nil, fmt.Errorf(`rpc failed in [%s]: %s`, rpcName, err.Error())
-		//}
-		//
-		//err = inData.Unmarshal(&helloRequest.Name)
-		//if err != nil {
-		//	reqFields, reqMeta, _ := h.ServiceMeta(rpcName, 1)
-		//	rpc.PrintUnmatchedMeta(reqFields, reqMeta, inData.Peek())
-		//	return nil, fmt.Errorf(`rpc failed in [%s]: %s`, rpcName, err.Error())
-		//}
-		//
-		//helloReply_, err := h.SayHello(ctx, &helloRequest)
-		//if err != nil {
-		//	return nil, fmt.Errorf(`rpc failed in [%s]: %s`, rpcName, err.Error())
-		//}
-		//
+		var helloRequest HelloRequest
+		var inVarList []interface{}
+		var callback string
+		inVarList = append(inVarList, &callback)
+		inVarList = append(inVarList, &helloRequest.Name)
+		//reqFields, _, _ := h.ServiceMeta(rpcName, 1)
+		err := rpc.DecodeArchiverWithTrace(rpcName, d, pak, inVarList...)
+		if err != nil {
+			return nil, err
+		}
+		helloReply_, err := h.SayHello(ctx, &helloRequest)
+		if err != nil {
+			return nil, fmt.Errorf(`rpc failed in [%s]: %s`, rpcName, err.Error())
+		}
+
+		var outVarList []interface{}
+		outVarList = append(outVarList, &callback)
+		outVarList = append(outVarList, helloReply_.Message)
+		return json.Marshal(outVarList)
 		//var e archiver.Encoder
 		//e.Init()
 		//

@@ -4,8 +4,8 @@ _G.log_tree = require "tree"
 _G.s2s = {}
 local SimpleServer = require "SimpleServer"
 
-function s2s.hello()
-    print("hello call back!")
+function s2s.hello_reply(param)
+    print("hello call back! param:", param)
 end
 
 local lua_server = SimpleServer.create()
@@ -22,4 +22,7 @@ lua_server.on_call_with_handle = function(msg, ...)
         return
     end
 end
-lua_server.Send("hello")
+-- 调用go服务的SayHello函数, 参数是lua_server_test
+-- 回调函数是hello_reply, 即go服务回包是s2s.hello_reply的参数
+-- 默认第二个参数是回调函数, 是否有回调函数用go侧的pb文件区分
+lua_server.Send("SayHello", "hello_reply", "lua_server_test")
