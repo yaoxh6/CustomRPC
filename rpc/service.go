@@ -76,12 +76,6 @@ func (h *CustomService) handleRPC(rpcName string, pak *transport.Package) ([]byt
 }
 
 func (h *CustomService) internalHandle(pak *transport.Package) {
-	//err := d.Load(pak.Data)
-	//if err != nil {
-	//	log.Errorf("load failed. ctx:%+v, err:%+v, data:%v", h.ctx, err, pak.Data)
-	//	return
-	//}
-
 	var param []interface{}
 	var rpcName string
 	err := h.d.Decode(pak.Data, &param)

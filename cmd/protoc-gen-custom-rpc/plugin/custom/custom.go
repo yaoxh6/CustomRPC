@@ -17,7 +17,10 @@ import (
 // relative to the import_prefix of the generator.Generator.
 const (
 	contextPkgPath = "context"
-	grpcPkgPath = "google.golang.org/grpc"
+	jsonPath = "encoding/json"
+	rpcPath = "github.com/yaoxh6/CustomRPC/rpc"
+	clientPath = "github.com/yaoxh6/CustomRPC/rpc/client"
+	transportPath = "github.com/yaoxh6/CustomRPC/rpc/transport"
 )
 
 func init() {
@@ -43,6 +46,10 @@ var (
 	contextPkg string
 	grpcPkg		string
 	serverPkg  string
+	jsonPkg string
+	rpcPkg string
+	clientPkg string
+	transportPkg string
 	pkgImports map[generator.GoPackageName]bool
 )
 
@@ -52,6 +59,10 @@ func (g *custom) Init(gen *generator.Generator) {
 	grpcPkg	= generator.RegisterUniquePackageName("grpc", nil)
 	contextPkg = generator.RegisterUniquePackageName("context", nil)
 	serverPkg = generator.RegisterUniquePackageName("server", nil)
+	jsonPkg	= generator.RegisterUniquePackageName("json", nil)
+	rpcPkg	= generator.RegisterUniquePackageName("rpc", nil)
+	clientPkg = generator.RegisterUniquePackageName("client", nil)
+	transportPkg = generator.RegisterUniquePackageName("transport", nil)
 }
 
 // Given a type name defined in a .proto, return its object.
@@ -69,6 +80,34 @@ func (g *custom) typeName(str string) string {
 // P forwards to g.gen.P.
 func (g *custom) P(args ...interface{}) { g.gen.P(args...) }
 
+func (g *custom) GenMessage(file *generator.FileDescriptor, message *pb.DescriptorProto) {
+	if len(message.Field) == 0 {
+		return
+	}
+
+	g.P("type ", message.GetName(), " struct {")
+	for _, field := range message.GetField() {
+		fieldType, isBasic := TranslateTypeToDeclare2(field, message)
+		if !isBasic && IsPlainStructure(fieldType) {
+			fieldType = "*" + fieldType
+		}
+		g.P(generator.CamelCase(field.GetName()), " ", fieldType, "`")
+	}
+	g.P("}")
+	g.P()
+}
+
+// generateMessages generates all the code for declared messages.
+func (g *custom) generateMessages(file *generator.FileDescriptor) {
+	g.P()
+	g.P("// Message definition")
+	g.P()
+
+	for _, message := range file.MessageType {
+		g.GenMessage(file, message)
+	}
+	g.P()
+}
 // Generate generates code for the services in the given file.
 func (g *custom) Generate(file *generator.FileDescriptor) {
 	if len(file.FileDescriptorProto.Service) == 0 {
@@ -77,6 +116,10 @@ func (g *custom) Generate(file *generator.FileDescriptor) {
 	g.P("// Reference imports to suppress errors if they are not otherwise used.")
 	g.P("var _ ", contextPkg, ".Context")
 	g.P()
+
+	if len(file.FileDescriptorProto.MessageType) > 0 {
+		g.generateMessages(file)
+	}
 
 	for i, service := range file.FileDescriptorProto.Service {
 		g.generateService(file, service, i)
@@ -90,7 +133,10 @@ func (g *custom) GenerateImports(file *generator.FileDescriptor, imports map[gen
 	}
 	g.P("import (")
 	g.P(contextPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, contextPkgPath)))
-	g.P(grpcPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, grpcPkgPath)))
+	g.P(jsonPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, jsonPath)))
+	g.P(clientPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, clientPath)))
+	g.P(rpcPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, rpcPath)))
+	g.P(transportPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, transportPath)))
 	g.P(")")
 	g.P()
 
@@ -150,24 +196,14 @@ func (g *custom) generateService(file *generator.FileDescriptor, service *pb.Ser
 
 	// Client structure.
 	g.P("type ", unexport(servAlias), " struct {")
-	g.P("c ", grpcPkg, ".ClientConnInterface")
-	g.P("name string")
+	g.P("c ", clientPkg, ".Client")
 	g.P("}")
 	g.P()
 
 	// NewClient factory.
-	g.P("func New", servAlias, " (name string, c ", grpcPkg, ".ClientConnInterface) ", servAlias, " {")
-	/*
-		g.P("if c == nil {")
-		g.P("c = ", clientPkg, ".NewClient()")
-		g.P("}")
-		g.P("if len(name) == 0 {")
-		g.P(`name = "`, serviceName, `"`)
-		g.P("}")
-	*/
+	g.P("func New", servAlias, " (name string, h *", rpcPkg, ".CustomService) ", servAlias, " {")
 	g.P("return &", unexport(servAlias), "{")
-	g.P("c: c,")
-	g.P("name: name,")
+	g.P(`c: `, clientPkg, `.NewCustomClient(h, "`, origServName, `"),`)
 	g.P("}")
 	g.P("}")
 	g.P()
@@ -193,6 +229,8 @@ func (g *custom) generateService(file *generator.FileDescriptor, service *pb.Ser
 
 	// Server interface.
 	serverType := servName + "CustomServer"
+	g.P("const ", serverType, `_ServiceName = "`, origServName, `"`)
+	g.P()
 	g.P("type ", serverType, " interface {")
 	for i, method := range service.Method {
 		g.gen.PrintComments(fmt.Sprintf("%s,2,%d", path, i)) // 2 means method in a service.
@@ -238,17 +276,22 @@ func (g *custom) generateService(file *generator.FileDescriptor, service *pb.Ser
 	//g.P(serverType)
 	//g.P("}")
 
-	g.P("func Register", service.GetName(), "CustomServer(s ", grpcPkg, ".ServiceRegistrar", ", srv ", serverType, ") {")
-	g.P("s.RegisterService(&", serviceDescVar, `, srv)`)
+	//g.P("func Register", service.GetName(), "CustomServer(s ", grpcPkg, ".ServiceRegistrar", ", srv ", serverType, ") {")
+	//g.P("s.RegisterService(&", serviceDescVar, `, srv)`)
+	//g.P("}")
+	//g.P()
+	g.P("func Register", servName, "Server(h ", rpcPkg, ".Service, svr ", servName, "CustomServer) error {")
+	g.P("return h.Register(nil, &", unexport(servName), "Handler{svr})")
 	g.P("}")
-	g.P()
+
+	g.P("type ", unexport(servName), "Handler struct {")
+	g.P(serverType)
+	g.P("}")
 	// Server handler implementations.
-	var handlerNames []string
+	//g.generateServerHandleRPCMethod(servName, messages, service.Method, service)
 	for _, method := range service.Method {
-		hname := g.generateServerMethod(servName, method)
-		handlerNames = append(handlerNames, hname)
+		g.generateServerMethod(servName, method, service)
 	}
-	g.genServiceDesc(file, serviceDescVar, serverType, service, handlerNames)
 }
 
 // generateEndpoint creates the api endpoint
@@ -313,7 +356,7 @@ func (g *custom) generateClientSignature(servName string, method *pb.MethodDescr
 		respName = servName + "_" + generator.CamelCase(origMethName) + "Client"
 	}
 
-	return fmt.Sprintf("%s(ctx %s.Context%s, opts ...%s.CallOption) (%s, error)", methName, contextPkg, reqArg, grpcPkg, respName)
+	return fmt.Sprintf("%s(ctx %s.Context%s, opts ...%s.Option) (%s, error)", methName, contextPkg, reqArg, clientPkg, respName)
 }
 
 func (g *custom) generateClientMethod(reqServ, servName, serviceDescVar string, method *pb.MethodDescriptorProto, descExpr string) {
@@ -325,28 +368,15 @@ func (g *custom) generateClientMethod(reqServ, servName, serviceDescVar string, 
 	servAlias := servName + "CustomClient"
 
 	// strip suffix
-	if strings.HasSuffix(servAlias, "CustomClientCustomClientClient") {
+	if strings.HasSuffix(servAlias, "CustomClientCustomClient") {
 		servAlias = strings.TrimSuffix(servAlias, "CustomClient")
 	}
 
 	g.P("func (c *", unexport(servAlias), ") ", g.generateClientSignature(servName, method), "{")
-	// 客户端之前的调用函数
-	//if !method.GetServerStreaming() && !method.GetClientStreaming() {
-	//	g.P(`req := c.c.NewRequest(c.name, "`, reqMethod, `", in)`)
-	//	g.P("out := new(", outType, ")")
-	//	// TODO: Pass descExpr to Invoke.
-	//	g.P("err := ", `c.c.Call(ctx, req, out, opts...)`)
-	//	g.P("if err != nil { return nil, err }")
-	//	g.P("return out, nil")
-	//	g.P("}")
-	//	g.P()
-	//	return
-	//}
 	if !method.GetServerStreaming() && !method.GetClientStreaming() {
-		g.P("out := new(", outType, ")")
-		g.P(`err := c.c.Invoke(ctx, "`,"/helloworld.Greeter/SayHello", `", in, out, opts...)`)
-		g.P("if err != nil { return nil, err }")
-		g.P("return out, nil")
+		g.P("var err error")
+		g.P(unexport(outType), "_ := ", "new(", outType, ")")
+		g.P("return ", unexport(outType), "_, err")
 		g.P("}")
 		g.P()
 		return
@@ -442,11 +472,11 @@ func (g *custom) generateServerSignature(servName string, method *pb.MethodDescr
 	ret := "error"
 
 	if !method.GetClientStreaming() && !method.GetServerStreaming() {
-		reqArgs = append(reqArgs, contextPkg+".Context")
+		reqArgs = append(reqArgs, "ctx "+contextPkg+".Context")
 		ret = "(*" + g.typeName(method.GetOutputType()) + ", error)"
 	}
 	if !method.GetClientStreaming() {
-		reqArgs = append(reqArgs, "*"+g.typeName(method.GetInputType()))
+		reqArgs = append(reqArgs, unexport(g.typeName(method.GetInputType()))+" *"+g.typeName(method.GetInputType()))
 	}
 	if method.GetServerStreaming() || method.GetClientStreaming() {
 		reqArgs = append(reqArgs, servName+"_"+generator.CamelCase(origMethName)+"Stream")
@@ -495,7 +525,7 @@ func (g *custom) genServiceDesc(file *generator.FileDescriptor, serviceDescVar s
 	g.P()
 }
 
-func (g *custom) generateServerMethod(servName string, method *pb.MethodDescriptorProto) string {
+func (g *custom) generateServerMethodOld(servName string, method *pb.MethodDescriptorProto) string {
 	methName := generator.CamelCase(method.GetName())
 	hname := fmt.Sprintf("_%s_%s_CustomHandler", servName, methName)
 	serveType := servName + "Handler"
@@ -603,6 +633,21 @@ func (g *custom) generateServerMethod(servName string, method *pb.MethodDescript
 		g.P("}")
 		g.P()
 	}
+
+	return hname
+}
+
+//g.generateServerHandleRPCMethod(servName, messages, service.Method, service)
+
+func (g *custom) generateServerMethod(servName string, method *pb.MethodDescriptorProto, service *pb.ServiceDescriptorProto) string {
+	methName := generator.CamelCase(method.GetName())
+	hname := fmt.Sprintf("_%s_%s_Handler", servName, methName)
+	serveType := servName + "CustomServer"
+	//inType := g.typeName(method.GetInputType())
+	g.P("func (h *", unexport(servName), "Handler) ", g.generateServerSignature(servName, method), " {")
+	g.P("return h.", serveType, ".", methName, "(ctx, " + unexport(g.typeName(method.GetInputType())) +")")
+	g.P("}")
+	g.P()
 
 	return hname
 }
