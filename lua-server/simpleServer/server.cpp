@@ -75,6 +75,7 @@ int SimpleServer::Send(lua_State* L)
 	for (int i = 1; i<=top; i++)
 	{
 		if (!EncodeData(L, j, i)) {
+			printf("EncodeData Err index = %d\n", i);
 			return 0;
 		}
 	}
@@ -83,17 +84,58 @@ int SimpleServer::Send(lua_State* L)
 	int ret = recv(sclient, recData, 255, 0);
 	if (ret > 0) {
 		recData[ret] = 0x00;
-		printf(recData);
+		printf("receData = %s\n", recData);
 	}
 	Recv(L, recData, strlen(recData));
+}
+
+bool DecodeData(lua_State* L, json_t& j, int index) {
+	auto type = j[index].type();
+	switch (type)
+	{
+	case json_t::value_t::null:
+		lua_pushnil(L);
+		return true;
+	case json_t::value_t::number_integer:
+		lua_pushinteger(L, j[index]);
+		return true;
+	case json_t::value_t::number_unsigned:
+	case json_t::value_t::number_float:
+		lua_pushnumber(L, j[index]);
+		return true;
+	case json_t::value_t::boolean:
+		lua_pushnumber(L, j[index]);
+		return true;
+	case json_t::value_t::string:
+		lua_pushstring(L, j[index].get<std::string>().c_str());
+		return true;
+	default:
+		break;
+	}
+	return false;
 }
 
 void SimpleServer::Recv(lua_State* L, const char* data, size_t data_len)
 {
 	if (!lua_get_object_function(L, this, "on_call_with_handle")) {
-		printf("SimpleServer::Recv on_call_with_hanldle failed");
+		printf("SimpleServer::Recv on_call_with_hanldle failed\n");
 		return;
 	}
-	lua_pushstring(L, data);
-	lua_call_function(L, nullptr, 1, 0);
+	json_t j;
+	try {
+		j = json_t::parse(data);
+	}
+	catch (std::exception& e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+	string callback = j[0];
+	lua_pushstring(L, callback.c_str());
+	for (int i = 1; i < j.size(); i++) {
+		if (!DecodeData(L, j, i)) {
+			printf("DecodeData Err index = %d\n", i);
+			return;
+		}
+	}
+	lua_call_function(L, nullptr, j.size(), 0);
 }
