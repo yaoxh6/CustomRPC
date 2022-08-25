@@ -79,7 +79,6 @@ func (h *CustomService) internalHandle(pak *transport.Package) {
 	if err != nil {
 		log.Debugf("handle rpc request failed:%+v", err)
 	}
-
 }
 
 func (h *CustomService) internalRecv() (int, error) {
@@ -152,10 +151,10 @@ func (h *CustomService) Close(ch chan struct{}) error {
 	}
 
 	pid := os.Getpid()
-	log.Warnf("process:%d, service:HiveService, closing ...", pid)
+	log.Warnf("process:%d, service:CustomService, closing ...", pid)
 	h.cancel()
 
-	log.Warnf("process:%d, service:HiveService, closed", pid)
+	log.Warnf("process:%d, service:CustomService, closed", pid)
 	ch <- struct{}{}
 	return nil
 }

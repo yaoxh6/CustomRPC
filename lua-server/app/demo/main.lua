@@ -28,6 +28,6 @@ lua_server.on_call_with_handle = function(msg, ...)
         return
     end
 end
--- 调用go服务的SayHello函数, 参数是lua_server_test
+-- 调用go服务的SayHello函数, 参数是param1
 -- 回调函数是hello_reply, 即go服务回包是s2s.hello_reply的参数
 lua_server.Send("SayHello", "hello_reply", "param1")
