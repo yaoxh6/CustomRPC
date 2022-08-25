@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -34,7 +33,6 @@ type CustomService struct {
 	cancel         context.CancelFunc
 	trans          transport.Transport
 	serviceHandler ServiceHandler
-	suspendMap     sync.Map // map[string]*CustomRequest
 	d              Codec
 }
 
@@ -56,20 +54,6 @@ func (h *CustomService) NewRequestId() string {
 	return fmt.Sprintf("#%d", requestId)
 }
 
-func (h *CustomService) initService() error {
-	h.suspendMap = sync.Map{}
-	return nil
-}
-
-func (h *CustomService) handleSuspendedRequest(requestId string, pak *transport.Package) error {
-	if raw, hasRequest := h.suspendMap.LoadAndDelete(requestId); hasRequest {
-		request := raw.(*CustomRequest)
-		request.ResumeExecution(pak)
-		return nil
-	}
-	return errors.Errorf("skip non-existing request: %s", requestId)
-}
-
 func (h *CustomService) handleRPC(rpcName string, pak *transport.Package) ([]byte, error) {
 	ctxNew := context.WithValue(h.ctx, ContextRequestPackage, pak)
 	return h.serviceHandler.HandleRPC(ctxNew, rpcName, h.d, pak)
@@ -82,28 +66,20 @@ func (h *CustomService) internalHandle(pak *transport.Package) {
 	rpcName = param[0].(string)
 	if err != nil {
 		log.Errorf("unmarshal failed. ctx:%+v, err:%+v", h.ctx, err)
-		//data := d.Peek()
 		log.Errorf("unmarshal failed data:%v", pak.Data)
-		//log.Infof("unmarshal failed. ", data)
 		return
 	}
 
-	if len(rpcName) > 0 && rpcName[0] == byte('#') {
-		err = h.handleSuspendedRequest(rpcName, pak)
-		if err != nil {
-			log.Debugf("handle suspended request failed:%+v", err)
-		}
-	} else {
-		rspBin, err := h.handleRPC(rpcName, pak)
-		if err == nil && len(rspBin) > 0 {
-			var sendPak = *pak
-			sendPak.Data = rspBin
-			err = h.Send(&sendPak)
-		}
-		if err != nil {
-			log.Debugf("handle rpc request failed:%+v", err)
-		}
+	rspBin, err := h.handleRPC(rpcName, pak)
+	if err == nil && len(rspBin) > 0 {
+		var sendPak = *pak
+		sendPak.Data = rspBin
+		err = h.Send(&sendPak)
 	}
+	if err != nil {
+		log.Debugf("handle rpc request failed:%+v", err)
+	}
+
 }
 
 func (h *CustomService) internalRecv() (int, error) {
@@ -199,22 +175,6 @@ func (h *CustomService) Serve() error {
 
 	c := make(chan struct{}, 1)
 	return h.Close(c)
-}
-
-func (h *CustomService) HangOnRequest(ctx context.Context, requestId string, msg *CustomRequest, pak *transport.Package) *CustomRespond {
-	h.suspendMap.Store(requestId, msg)
-	defer h.suspendMap.Delete(requestId)
-
-	err := h.Send(pak)
-	if err != nil {
-		var rsp CustomRespond
-		rsp.pak = nil
-		rsp.err = errors.Wrap(err, "send failed")
-		return &rsp
-	}
-
-	rsp := msg.WaitComplete(ctx)
-	return rsp
 }
 
 func (h *CustomService) Send(pak *transport.Package) error {

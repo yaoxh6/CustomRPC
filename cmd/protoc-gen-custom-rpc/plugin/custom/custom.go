@@ -156,59 +156,6 @@ func (g *custom) generateService(file *generator.FileDescriptor, service *pb.Ser
 
 	origServName := service.GetName()
 	servName := generator.CamelCase(origServName)
-	//serviceName := strings.ToLower(service.GetName())
-	//if pkg := file.GetPackage(); pkg != "" {
-		//serviceName = pkg
-	//}
-	//servAlias := servName + "CustomClient"
-
-	// strip suffix
-	//if strings.HasSuffix(servAlias, "CustomClientCustomClient") {
-	//	servAlias = strings.TrimSuffix(servAlias, "CustomClient")
-	//}
-
-	//g.P()
-	//g.P("// Client API for ", servName, " service")
-	//g.P()
-	//
-	//// Client interface.
-	//g.P("type ", servAlias, " interface {")
-	//for i, method := range service.Method {
-	//	g.gen.PrintComments(fmt.Sprintf("%s,2,%d", path, i)) // 2 means method in a service.
-	//	g.P(g.generateClientSignature(servName, method))
-	//}
-	//g.P("}")
-	//g.P()
-	//
-	//// Client structure.
-	//g.P("type ", unexport(servAlias), " struct {")
-	//g.P("c ", clientPkg, ".Client")
-	//g.P("}")
-	//g.P()
-	//
-	//// NewClient factory.
-	//g.P("func New", servAlias, " (name string, h *", rpcPkg, ".CustomService) ", servAlias, " {")
-	//g.P("return &", unexport(servAlias), "{")
-	//g.P(`c: `, clientPkg, `.NewCustomClient(h, "`, origServName, `"),`)
-	//g.P("}")
-	//g.P("}")
-	//g.P()
-	//var methodIndex, streamIndex int
-	//serviceDescVar := "_" + servName + "_serviceDesc"
-	//// Client method implementations.
-	//for _, method := range service.Method {
-	//	var descExpr string
-	//	if !method.GetServerStreaming() {
-	//		// Unary RPC method
-	//		descExpr = fmt.Sprintf("&%s.Methods[%d]", serviceDescVar, methodIndex)
-	//		methodIndex++
-	//	} else {
-	//		// Streaming RPC method
-	//		descExpr = fmt.Sprintf("&%s.Streams[%d]", serviceDescVar, streamIndex)
-	//		streamIndex++
-	//	}
-	//	g.generateClientMethod(serviceName, servName, serviceDescVar, method, descExpr)
-	//}
 
 	g.P("// Server API for ", servName, " service")
 	g.P()
@@ -225,47 +172,6 @@ func (g *custom) generateService(file *generator.FileDescriptor, service *pb.Ser
 	g.P("}")
 	g.P()
 
-	// 之前的函数注册
-	//// Server registration.
-	//g.P("func Register", servName, "Handler(s ", serverPkg, ".Server, hdlr ", serverType, ", opts ...", serverPkg, ".HandlerOption) error {")
-	//g.P("type ", unexport(servName), " interface {")
-	//
-	//// generate interface methods
-	//for _, method := range service.Method {
-	//	methName := generator.CamelCase(method.GetName())
-	//	inType := g.typeName(method.GetInputType())
-	//	outType := g.typeName(method.GetOutputType())
-	//
-	//	if !method.GetServerStreaming() && !method.GetClientStreaming() {
-	//		g.P(methName, "(ctx ", contextPkg, ".Context, in *", inType, ", out *", outType, ") error")
-	//		continue
-	//	}
-	//	g.P(methName, "(ctx ", contextPkg, ".Context, stream server.Stream) error")
-	//}
-	//g.P("}")
-	//g.P("type ", servName, " struct {")
-	//g.P(unexport(servName))
-	//g.P("}")
-	//g.P("h := &", unexport(servName), "Handler{hdlr}")
-	//for _, method := range service.Method {
-	//	if method.Options != nil && proto.HasExtension(method.Options, options.E_Http) {
-	//		g.P("opts = append(opts, ", apiPkg, ".WithEndpoint(&", apiPkg, ".Endpoint{")
-	//		g.generateEndpoint(servName, method)
-	//		g.P("}))")
-	//	}
-	//}
-	//g.P("return s.Handle(s.NewHandler(&", servName, "{h}, opts...))")
-	//g.P("}")
-	//g.P()
-	//
-	//g.P("type ", unexport(servName), "Handler struct {")
-	//g.P(serverType)
-	//g.P("}")
-
-	//g.P("func Register", service.GetName(), "CustomServer(s ", grpcPkg, ".ServiceRegistrar", ", srv ", serverType, ") {")
-	//g.P("s.RegisterService(&", serviceDescVar, `, srv)`)
-	//g.P("}")
-	//g.P()
 	g.P("func Register", servName, "Server(h ", rpcPkg, ".Service, svr ", servName, "CustomServer) error {")
 	g.P("return h.Register(nil, &", unexport(servName), "Handler{svr})")
 	g.P("}")
@@ -283,7 +189,6 @@ func (g *custom) generateService(file *generator.FileDescriptor, service *pb.Ser
 		hname := g.generateServerMethod(servName, method, messages)
 		handlerNames = append(handlerNames, hname)
 	}
-	//g.genServiceDesc(file, serviceDescVar, serverType, service, handlerNames)
 }
 
 // generateEndpoint creates the api endpoint
