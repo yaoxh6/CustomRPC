@@ -11,10 +11,10 @@ import (
 
 import (
 	context "context"
-	json "encoding/json"
 	rpc "github.com/yaoxh6/CustomRPC/rpc"
 	client "github.com/yaoxh6/CustomRPC/rpc/client"
 	transport "github.com/yaoxh6/CustomRPC/rpc/transport"
+	reflect "reflect"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -31,11 +31,14 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
 
+// Message definition
+
 // Client API for Greeter service
 
 type GreeterCustomClient interface {
 	// Sends a greeting
 	SayHello(ctx context.Context, in *HelloRequest, opts ...client.Option) (*HelloReply, error)
+	SayHello2(ctx context.Context, in *HelloRequest2, opts ...client.Option) (*HelloReply2, error)
 }
 
 type greeterCustomClient struct {
@@ -54,6 +57,12 @@ func (c *greeterCustomClient) SayHello(ctx context.Context, in *HelloRequest, op
 	return helloReply_, err
 }
 
+func (c *greeterCustomClient) SayHello2(ctx context.Context, in *HelloRequest2, opts ...client.Option) (*HelloReply2, error) {
+	var err error
+	helloReply2_ := new(HelloReply2)
+	return helloReply2_, err
+}
+
 // Server API for Greeter service
 
 const GreeterCustomServer_ServiceName = "Greeter"
@@ -61,6 +70,7 @@ const GreeterCustomServer_ServiceName = "Greeter"
 type GreeterCustomServer interface {
 	// Sends a greeting
 	SayHello(ctx context.Context, helloRequest *HelloRequest) (*HelloReply, error)
+	SayHello2(ctx context.Context, helloRequest2 *HelloRequest2) (*HelloReply2, error)
 }
 
 func RegisterGreeterServer(h rpc.Service, svr GreeterCustomServer) error {
@@ -71,6 +81,62 @@ type greeterHandler struct {
 	GreeterCustomServer
 }
 
-func (h *greeterHandler) SayHello(ctx context.Context, helloRequest *HelloRequest) (*HelloReply, error) {
-	return h.GreeterCustomServer.SayHello(ctx, helloRequest)
+func (h *greeterHandler) Name() string {
+	return "Greeter"
+}
+
+func (h *greeterHandler) HandleRPC(ctx context.Context, rpcName string, d rpc.Codec, pak *transport.Package) ([]byte, error) {
+	value := reflect.ValueOf(h)
+	args := []reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(rpcName), reflect.ValueOf(d), reflect.ValueOf(pak)}
+	f := value.MethodByName(rpcName)
+	res := f.Call(args)
+	if res[0].IsNil() {
+		return nil, res[1].Interface().(error)
+	}
+	return res[0].Bytes(), nil
+}
+func (h *greeterHandler) SayHello(ctx context.Context, rpcName string, d rpc.Codec, pak *transport.Package) ([]byte, error) {
+	var helloRequest HelloRequest
+	var inVarList []interface{}
+	var temp string
+	var callback string
+	inVarList = append(inVarList, &temp)
+	inVarList = append(inVarList, &callback)
+	inVarList = append(inVarList, &helloRequest.Name)
+	err := rpc.DecodeArchiverWithTrace(rpcName, d, pak, inVarList...)
+	if err != nil {
+		return nil, err
+	}
+	helloReply, err := h.GreeterCustomServer.SayHello(ctx, &helloRequest)
+	if err != nil {
+		return nil, fmt.Errorf(`rpc failed in [%s]: %s`, rpcName, err.Error())
+	}
+	var outVarList []interface{}
+	outVarList = append(outVarList, &callback)
+	outVarList = append(outVarList, &helloReply.Message)
+	return d.Encode(outVarList)
+}
+
+func (h *greeterHandler) SayHello2(ctx context.Context, rpcName string, d rpc.Codec, pak *transport.Package) ([]byte, error) {
+	var helloRequest2 HelloRequest2
+	var inVarList []interface{}
+	var temp string
+	var callback string
+	inVarList = append(inVarList, &temp)
+	inVarList = append(inVarList, &callback)
+	inVarList = append(inVarList, &helloRequest2.RequestName)
+	inVarList = append(inVarList, &helloRequest2.Num)
+	err := rpc.DecodeArchiverWithTrace(rpcName, d, pak, inVarList...)
+	if err != nil {
+		return nil, err
+	}
+	helloReply2, err := h.GreeterCustomServer.SayHello2(ctx, &helloRequest2)
+	if err != nil {
+		return nil, fmt.Errorf(`rpc failed in [%s]: %s`, rpcName, err.Error())
+	}
+	var outVarList []interface{}
+	outVarList = append(outVarList, &callback)
+	outVarList = append(outVarList, &helloReply2.ReplyNum)
+	outVarList = append(outVarList, &helloReply2.Res)
+	return d.Encode(outVarList)
 }

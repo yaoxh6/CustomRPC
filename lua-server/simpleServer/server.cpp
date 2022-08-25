@@ -104,7 +104,7 @@ bool DecodeData(lua_State* L, json_t& j, int index) {
 		lua_pushnumber(L, j[index]);
 		return true;
 	case json_t::value_t::boolean:
-		lua_pushnumber(L, j[index]);
+		lua_pushboolean(L, j[index]);
 		return true;
 	case json_t::value_t::string:
 		lua_pushstring(L, j[index].get<std::string>().c_str());

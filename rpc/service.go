@@ -143,6 +143,7 @@ func (h *CustomService) listenAndServe() error {
 		recvCnt, err := h.internalRecv()
 		if err != nil {
 			log.Errorf("internalRecv err: %+v", err)
+			return err
 		}
 
 		if recvCnt == 0 {
@@ -162,7 +163,7 @@ func (h *CustomService) StartEventLoop() error {
 		err := h.listenAndServe()
 		if err != nil {
 			if !errors.Is(err, context.Canceled) {
-				log.Fatalf("serve crash: %+v", err)
+				log.Errorf("serve crash: %+v", err)
 			}
 		}
 	}()

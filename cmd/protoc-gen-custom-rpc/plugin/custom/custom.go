@@ -2,6 +2,8 @@ package custom
 
 import (
 	"fmt"
+	"google.golang.org/protobuf/types/descriptorpb"
+
 	//"google.golang.org/protobuf/compiler/protogen"
 	"path"
 	"strconv"
@@ -18,6 +20,7 @@ import (
 const (
 	contextPkgPath = "context"
 	jsonPath = "encoding/json"
+	reflectPath = "reflect"
 	rpcPath = "github.com/yaoxh6/CustomRPC/rpc"
 	clientPath = "github.com/yaoxh6/CustomRPC/rpc/client"
 	transportPath = "github.com/yaoxh6/CustomRPC/rpc/transport"
@@ -44,6 +47,7 @@ func (g *custom) Name() string {
 var (
 	apiPkg     string
 	contextPkg string
+	reflectPkg string
 	grpcPkg		string
 	serverPkg  string
 	jsonPkg string
@@ -58,6 +62,7 @@ func (g *custom) Init(gen *generator.Generator) {
 	g.gen = gen
 	grpcPkg	= generator.RegisterUniquePackageName("grpc", nil)
 	contextPkg = generator.RegisterUniquePackageName("context", nil)
+	reflectPkg = generator.RegisterUniquePackageName("reflect", nil)
 	serverPkg = generator.RegisterUniquePackageName("server", nil)
 	jsonPkg	= generator.RegisterUniquePackageName("json", nil)
 	rpcPkg	= generator.RegisterUniquePackageName("rpc", nil)
@@ -80,32 +85,12 @@ func (g *custom) typeName(str string) string {
 // P forwards to g.gen.P.
 func (g *custom) P(args ...interface{}) { g.gen.P(args...) }
 
-func (g *custom) GenMessage(file *generator.FileDescriptor, message *pb.DescriptorProto) {
-	if len(message.Field) == 0 {
-		return
-	}
-
-	g.P("type ", message.GetName(), " struct {")
-	for _, field := range message.GetField() {
-		fieldType, isBasic := TranslateTypeToDeclare2(field, message)
-		if !isBasic && IsPlainStructure(fieldType) {
-			fieldType = "*" + fieldType
-		}
-		g.P(generator.CamelCase(field.GetName()), " ", fieldType, "`")
-	}
-	g.P("}")
-	g.P()
-}
-
 // generateMessages generates all the code for declared messages.
 func (g *custom) generateMessages(file *generator.FileDescriptor) {
 	g.P()
 	g.P("// Message definition")
 	g.P()
 
-	for _, message := range file.MessageType {
-		g.GenMessage(file, message)
-	}
 	g.P()
 }
 // Generate generates code for the services in the given file.
@@ -133,7 +118,8 @@ func (g *custom) GenerateImports(file *generator.FileDescriptor, imports map[gen
 	}
 	g.P("import (")
 	g.P(contextPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, contextPkgPath)))
-	g.P(jsonPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, jsonPath)))
+	//g.P(jsonPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, jsonPath)))
+	g.P(reflectPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, reflectPath)))
 	g.P(clientPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, clientPath)))
 	g.P(rpcPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, rpcPath)))
 	g.P(transportPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, transportPath)))
@@ -288,10 +274,16 @@ func (g *custom) generateService(file *generator.FileDescriptor, service *pb.Ser
 	g.P(serverType)
 	g.P("}")
 	// Server handler implementations.
-	//g.generateServerHandleRPCMethod(servName, messages, service.Method, service)
+	g.generateServerName(servName, origServName)
+	g.genHandleRPC(servName)
+	var handlerNames []string
+
+	messages := file.GetMessageType()
 	for _, method := range service.Method {
-		g.generateServerMethod(servName, method, service)
+		hname := g.generateServerMethod(servName, method, messages)
+		handlerNames = append(handlerNames, hname)
 	}
+	//g.genServiceDesc(file, serviceDescVar, serverType, service, handlerNames)
 }
 
 // generateEndpoint creates the api endpoint
@@ -525,36 +517,41 @@ func (g *custom) genServiceDesc(file *generator.FileDescriptor, serviceDescVar s
 	g.P()
 }
 
-func (g *custom) generateServerMethodOld(servName string, method *pb.MethodDescriptorProto) string {
+func (g *custom) generateServerMethod(servName string, method *pb.MethodDescriptorProto, messages []*descriptorpb.DescriptorProto) string {
 	methName := generator.CamelCase(method.GetName())
-	hname := fmt.Sprintf("_%s_%s_CustomHandler", servName, methName)
+	hname := methName
 	serveType := servName + "Handler"
 	inType := g.typeName(method.GetInputType())
 	outType := g.typeName(method.GetOutputType())
-
-	// 之前服务端生成代码
-	//if !method.GetServerStreaming() && !method.GetClientStreaming() {
-	//	g.P("func (h *", unexport(servName), "Handler) ", methName, "(ctx ", contextPkg, ".Context, in *", inType, ", out *", outType, ") error {")
-	//	g.P("return h.", serveType, ".", methName, "(ctx, in, out)")
-	//	g.P("}")
-	//	g.P()
-	//	return hname
-	//}
-
+	inputPb := g.getPbByName(messages, inType)
+	outPb := g.getPbByName(messages, outType)
 	if !method.GetClientStreaming() && !method.GetServerStreaming() {
-		g.P("func ", hname, "(srv interface{}, ctx ", contextPkg, ".Context, dec func(interface{}) error, interceptor ", grpcPkg, ".UnaryServerInterceptor", ") (interface{}, error) {")
-		g.P("in := new(", g.typeName(method.GetInputType()), ")")
-		g.P("if err := dec(in); err != nil { return nil, err }")
-		g.P("if interceptor == nil { return srv.(", servName, "Server).", method.Name, "(ctx, in) }")
-		g.P("info := &", grpcPkg, ".UnaryServerInfo", "{")
-		g.P("Server: srv,")
-		fullMethodName := "/helloworld.Greeter/SayHello"
-		g.P("FullMethod: \"", fullMethodName, "\",")
+		g.P("func (h *", unexport(servName), "Handler) ", hname, "(ctx ", contextPkg, ".Context, rpcName string, d rpc.Codec, pak *", transportPkg, ".Package) ([]byte, error) {")
+		g.P("var ", unexport(inType), " ", inType)
+		g.P("var inVarList []interface{}")
+		g.P("var temp string")
+		g.P("var callback string")
+		g.P("inVarList = append(inVarList, &temp)")
+		g.P("inVarList = append(inVarList, &callback)")
+		// ...
+		for _, field := range inputPb.GetField() {
+			g.P("inVarList = append(inVarList, &", unexport(inType), ".", generator.CamelCase(field.GetName()), ")")
+		}
+		g.P("err := rpc.DecodeArchiverWithTrace(rpcName, d, pak, inVarList...)")
+		g.P("if err != nil {")
+		g.P("return nil, err")
 		g.P("}")
-		g.P("handler := func(ctx ", contextPkg, ".Context, req interface{}) (interface{}, error) {")
-		g.P("return srv.(", servName, "Server).", method.Name, "(ctx, req.(*", g.typeName(method.GetInputType()), "))")
+		g.P(unexport(outType), ", err := h.", servName, "CustomServer.", methName, "(ctx, &", unexport(inType),")")
+		g.P("if err != nil {")
+		g.P("return nil, fmt.Errorf(`rpc failed in [%s]: %s`, rpcName, err.Error())")
 		g.P("}")
-		g.P("return interceptor(ctx, in, info, handler)")
+		g.P("var outVarList []interface{}")
+		g.P("outVarList = append(outVarList, &callback)")
+		// ...
+		for _, field := range outPb.GetField() {
+			g.P("outVarList = append(outVarList, &", unexport(outType), ".", generator.CamelCase(field.GetName()), ")")
+		}
+		g.P("return d.Encode(outVarList)")
 		g.P("}")
 		g.P()
 		return hname
@@ -637,17 +634,33 @@ func (g *custom) generateServerMethodOld(servName string, method *pb.MethodDescr
 	return hname
 }
 
-//g.generateServerHandleRPCMethod(servName, messages, service.Method, service)
+func (g *custom) getPbByName(messages []*descriptorpb.DescriptorProto, inType string) *descriptorpb.DescriptorProto {
+	for _, message := range messages {
+		if message.GetName() == inType {
+			return message
+		}
+	}
+	return nil
+}
 
-func (g *custom) generateServerMethod(servName string, method *pb.MethodDescriptorProto, service *pb.ServiceDescriptorProto) string {
-	methName := generator.CamelCase(method.GetName())
-	hname := fmt.Sprintf("_%s_%s_Handler", servName, methName)
-	serveType := servName + "CustomServer"
-	//inType := g.typeName(method.GetInputType())
-	g.P("func (h *", unexport(servName), "Handler) ", g.generateServerSignature(servName, method), " {")
-	g.P("return h.", serveType, ".", methName, "(ctx, " + unexport(g.typeName(method.GetInputType())) +")")
+func (g *custom) generateServerName(servName string, origServName string) string {
+	hname := fmt.Sprintf("_%s_%s_Handler", servName, "Name")
+	g.P("func (h *", unexport(servName), "Handler) Name() string {")
+	g.P(`return "`, origServName, `"`)
 	g.P("}")
 	g.P()
-
 	return hname
+}
+
+func (g *custom) genHandleRPC(servName string) {
+	g.P("func (h *", unexport(servName), "Handler) HandleRPC(ctx ", contextPkg, ".Context, rpcName string, d rpc.Codec, pak *", transportPkg, ".Package) ([]byte, error) {")
+	g.P("value := reflect.ValueOf(h)")
+	g.P("args := []reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(rpcName), reflect.ValueOf(d), reflect.ValueOf(pak)}")
+	g.P("f := value.MethodByName(rpcName)")
+	g.P("res := f.Call(args)")
+	g.P("if (res[0].IsNil()) {")
+	g.P("return nil, res[1].Interface().(error)")
+	g.P("}")
+	g.P("return res[0].Bytes(), nil")
+	g.P("}")
 }

@@ -34,16 +34,6 @@ type RequestOptions struct {
 	Timeout time.Duration
 }
 
-func Timeout(timeout time.Duration) RequestOption {
-	return func(o *RequestOptions) {
-		o.Timeout = timeout
-		if o.Timeout < 0 {
-			// In this case, timeout would be immediately fired
-			o.Timeout = 0
-		}
-	}
-}
-
 func NewCustomRequest(requestId string, data []byte, opts ...RequestOption) *CustomRequest {
 	h := &CustomRequest{
 		requestId:   requestId,
