@@ -120,7 +120,7 @@ func (g *custom) GenerateImports(file *generator.FileDescriptor, imports map[gen
 	g.P(contextPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, contextPkgPath)))
 	//g.P(jsonPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, jsonPath)))
 	g.P(reflectPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, reflectPath)))
-	g.P(clientPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, clientPath)))
+	//g.P(clientPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, clientPath)))
 	g.P(rpcPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, rpcPath)))
 	g.P(transportPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, transportPath)))
 	g.P(")")
@@ -155,60 +155,60 @@ func (g *custom) generateService(file *generator.FileDescriptor, service *pb.Ser
 	path := fmt.Sprintf("6,%d", index) // 6 means service.
 
 	origServName := service.GetName()
-	serviceName := strings.ToLower(service.GetName())
-	if pkg := file.GetPackage(); pkg != "" {
-		serviceName = pkg
-	}
 	servName := generator.CamelCase(origServName)
-	servAlias := servName + "CustomClient"
+	//serviceName := strings.ToLower(service.GetName())
+	//if pkg := file.GetPackage(); pkg != "" {
+		//serviceName = pkg
+	//}
+	//servAlias := servName + "CustomClient"
 
 	// strip suffix
-	if strings.HasSuffix(servAlias, "CustomClientCustomClient") {
-		servAlias = strings.TrimSuffix(servAlias, "CustomClient")
-	}
+	//if strings.HasSuffix(servAlias, "CustomClientCustomClient") {
+	//	servAlias = strings.TrimSuffix(servAlias, "CustomClient")
+	//}
 
-	g.P()
-	g.P("// Client API for ", servName, " service")
-	g.P()
-
-	// Client interface.
-	g.P("type ", servAlias, " interface {")
-	for i, method := range service.Method {
-		g.gen.PrintComments(fmt.Sprintf("%s,2,%d", path, i)) // 2 means method in a service.
-		g.P(g.generateClientSignature(servName, method))
-	}
-	g.P("}")
-	g.P()
-
-	// Client structure.
-	g.P("type ", unexport(servAlias), " struct {")
-	g.P("c ", clientPkg, ".Client")
-	g.P("}")
-	g.P()
-
-	// NewClient factory.
-	g.P("func New", servAlias, " (name string, h *", rpcPkg, ".CustomService) ", servAlias, " {")
-	g.P("return &", unexport(servAlias), "{")
-	g.P(`c: `, clientPkg, `.NewCustomClient(h, "`, origServName, `"),`)
-	g.P("}")
-	g.P("}")
-	g.P()
-	var methodIndex, streamIndex int
-	serviceDescVar := "_" + servName + "_serviceDesc"
-	// Client method implementations.
-	for _, method := range service.Method {
-		var descExpr string
-		if !method.GetServerStreaming() {
-			// Unary RPC method
-			descExpr = fmt.Sprintf("&%s.Methods[%d]", serviceDescVar, methodIndex)
-			methodIndex++
-		} else {
-			// Streaming RPC method
-			descExpr = fmt.Sprintf("&%s.Streams[%d]", serviceDescVar, streamIndex)
-			streamIndex++
-		}
-		g.generateClientMethod(serviceName, servName, serviceDescVar, method, descExpr)
-	}
+	//g.P()
+	//g.P("// Client API for ", servName, " service")
+	//g.P()
+	//
+	//// Client interface.
+	//g.P("type ", servAlias, " interface {")
+	//for i, method := range service.Method {
+	//	g.gen.PrintComments(fmt.Sprintf("%s,2,%d", path, i)) // 2 means method in a service.
+	//	g.P(g.generateClientSignature(servName, method))
+	//}
+	//g.P("}")
+	//g.P()
+	//
+	//// Client structure.
+	//g.P("type ", unexport(servAlias), " struct {")
+	//g.P("c ", clientPkg, ".Client")
+	//g.P("}")
+	//g.P()
+	//
+	//// NewClient factory.
+	//g.P("func New", servAlias, " (name string, h *", rpcPkg, ".CustomService) ", servAlias, " {")
+	//g.P("return &", unexport(servAlias), "{")
+	//g.P(`c: `, clientPkg, `.NewCustomClient(h, "`, origServName, `"),`)
+	//g.P("}")
+	//g.P("}")
+	//g.P()
+	//var methodIndex, streamIndex int
+	//serviceDescVar := "_" + servName + "_serviceDesc"
+	//// Client method implementations.
+	//for _, method := range service.Method {
+	//	var descExpr string
+	//	if !method.GetServerStreaming() {
+	//		// Unary RPC method
+	//		descExpr = fmt.Sprintf("&%s.Methods[%d]", serviceDescVar, methodIndex)
+	//		methodIndex++
+	//	} else {
+	//		// Streaming RPC method
+	//		descExpr = fmt.Sprintf("&%s.Streams[%d]", serviceDescVar, streamIndex)
+	//		streamIndex++
+	//	}
+	//	g.generateClientMethod(serviceName, servName, serviceDescVar, method, descExpr)
+	//}
 
 	g.P("// Server API for ", servName, " service")
 	g.P()

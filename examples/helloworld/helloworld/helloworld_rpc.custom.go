@@ -12,7 +12,6 @@ import (
 import (
 	context "context"
 	rpc "github.com/yaoxh6/CustomRPC/rpc"
-	client "github.com/yaoxh6/CustomRPC/rpc/client"
 	transport "github.com/yaoxh6/CustomRPC/rpc/transport"
 	reflect "reflect"
 )
@@ -32,36 +31,6 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 var _ context.Context
 
 // Message definition
-
-// Client API for Greeter service
-
-type GreeterCustomClient interface {
-	// Sends a greeting
-	SayHello(ctx context.Context, in *HelloRequest, opts ...client.Option) (*HelloReply, error)
-	SayHello2(ctx context.Context, in *HelloRequest2, opts ...client.Option) (*HelloReply2, error)
-}
-
-type greeterCustomClient struct {
-	c client.Client
-}
-
-func NewGreeterCustomClient(name string, h *rpc.CustomService) GreeterCustomClient {
-	return &greeterCustomClient{
-		c: client.NewCustomClient(h, "Greeter"),
-	}
-}
-
-func (c *greeterCustomClient) SayHello(ctx context.Context, in *HelloRequest, opts ...client.Option) (*HelloReply, error) {
-	var err error
-	helloReply_ := new(HelloReply)
-	return helloReply_, err
-}
-
-func (c *greeterCustomClient) SayHello2(ctx context.Context, in *HelloRequest2, opts ...client.Option) (*HelloReply2, error) {
-	var err error
-	helloReply2_ := new(HelloReply2)
-	return helloReply2_, err
-}
 
 // Server API for Greeter service
 
